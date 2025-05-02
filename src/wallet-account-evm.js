@@ -14,7 +14,11 @@
 'use strict'
 
 import { verifyMessage, Contract } from 'ethers'
-import ERC_20_ABI from './erc20-abi.js'
+
+const ERC_20_ABI = [
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)'
+]
 
 /**
  * @typedef {Object} KeyPair
@@ -115,13 +119,13 @@ export default class WalletAccountEvm {
   }
 
   /**
-   * Returns the account's native token balance (e.g., ether balance for ethereum in wei)
+   * Returns the account's native token balance (e.g., ether balance for ethereum in wei).
    *
-   * @returns {Promise<number>} The transaction's hash
+   * @returns {Promise<number>} The native token balance.
    */
   async getBalance () {
     if (!this.#account.provider) {
-      throw new Error('The wallet must be connected to a provider to get the balance.')
+      throw new Error('The wallet must be connected to a provider to retrieve balances.')
     }
 
     const balance = await this.#account.provider.getBalance(this.address)
@@ -129,20 +133,19 @@ export default class WalletAccountEvm {
   }
 
   /**
-   * Returns the account balance for a specific token in its base unit (e.g., 1 USDT will return 1_000_000)
+   * Returns the account balance for a specific token in its base unit (e.g., 1 USDT will return 1_000_000).
    *
-   * @param {string} tokenAddress - The smart contract address of the token
-   * @returns {Promise<number>} The token balance
+   * @param {string} tokenAddress - The smart contract address of the token.
+   * @returns {Promise<number>} The token balance.
    */
   async getTokenBalance (tokenAddress) {
     if (!this.#account.provider) {
-      throw new Error('The wallet must be connected to a provider to get the balance.')
+      throw new Error('The wallet must be connected to a provider to retrieve token balances.')
     }
 
     const tokenContract = new Contract(tokenAddress, ERC_20_ABI, this.#account.provider)
     const rawBalance = await tokenContract.balanceOf(this.address)
-    const decimals = await tokenContract.decimals()
 
-    return Number(rawBalance) / (10 ** Number(decimals))
+    return Number(rawBalance)
   }
 }
