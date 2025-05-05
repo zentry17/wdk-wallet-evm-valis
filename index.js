@@ -13,8 +13,8 @@
 // limitations under the License.
 'use strict'
 
+/** @typedef {import('./src/wallet-account-evm.js').default} WalletAccountEvm */
 /** @typedef {import('./src/wallet-account-evm.js').KeyPair} KeyPair */
-
 /** @typedef {import('./src/wallet-account-evm.js').EvmTransaction} EvmTransaction */
 
 export { default } from './src/wallet-manager-evm.js'
