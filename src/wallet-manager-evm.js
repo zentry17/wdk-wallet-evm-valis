@@ -19,6 +19,11 @@ import WalletAccountEvm from './wallet-account-evm.js'
 
 const BIP_44_ETH_DERIVATION_PATH_BASE = 'm/44\'/60\'/0\'/0'
 
+/**
+ * @typedef {Object} EvmWalletConfig
+ * @property {string} [rpcUrl] - The url of the rpc provider.
+ */
+
 export default class WalletManagerEvm {
   #wallet
 
@@ -26,8 +31,7 @@ export default class WalletManagerEvm {
    * Creates a new wallet manager for evm blockchains.
    *
    * @param {string} seedPhrase - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
-   * @param {Object} [config] - The configuration object.
-   * @param {string} [config.rpcUrl] - The url of the rpc provider.
+   * @param {EvmWalletConfig} [config] - The configuration object.
    */
   constructor (seedPhrase, config = {}) {
     const { rpcUrl } = config

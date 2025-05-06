@@ -62,13 +62,13 @@ export default class WalletAccountEvm {
      */
     sendTransaction(tx: EvmTransaction): Promise<string>;
     /**
-     * Returns the account's native token balance (e.g., ether balance for ethereum in wei).
+     * Returns the account's native token balance.
      *
      * @returns {Promise<number>} The native token balance.
      */
     getBalance(): Promise<number>;
     /**
-     * Returns the account balance for a specific token in its base unit.
+     * Returns the account balance for a specific token.
      *
      * @param {string} tokenAddress - The smart contract address of the token.
      * @returns {Promise<number>} The token balance.

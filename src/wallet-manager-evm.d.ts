@@ -1,3 +1,7 @@
+/**
+ * @typedef {Object} EvmWalletConfig
+ * @property {string} [rpcUrl] - The url of the rpc provider.
+ */
 export default class WalletManagerEvm {
     /**
      * Returns a random [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
@@ -16,12 +20,9 @@ export default class WalletManagerEvm {
      * Creates a new wallet manager for evm blockchains.
      *
      * @param {string} seedPhrase - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
-     * @param {Object} [config] - The configuration object.
-     * @param {string} [config.rpcUrl] - The url of the rpc provider.
+     * @param {EvmWalletConfig} [config] - The configuration object.
      */
-    constructor(seedPhrase: string, config?: {
-        rpcUrl?: string;
-    });
+    constructor(seedPhrase: string, config?: EvmWalletConfig);
     /**
     * The seed phrase of the wallet.
     *
@@ -40,4 +41,10 @@ export default class WalletManagerEvm {
     getAccount(index?: number): Promise<WalletAccountEvm>;
     #private;
 }
+export type EvmWalletConfig = {
+    /**
+     * - The url of the rpc provider.
+     */
+    rpcUrl?: string;
+};
 import WalletAccountEvm from './wallet-account-evm.js';
