@@ -1,17 +1,19 @@
 {
   "name": "@wdk/wallet-evm",
-  "version": "0.1.0-beta.1",
-  "description": "Wallet management utilities for EVM chains",
+  "version": "1.0.0-beta.1",
+  "description": "A simple package to manage BIP-32 wallets for evm blockchains.",
   "main": "index.js",
   "type": "module",
-  "types": "index.d.ts",
   "scripts": {
-    "lint": "standard --fix"
+    "build:types": "tsc",
+    "lint": "standard",
+    "lint:fix": "standard --fix"
   },
   "dependencies": {
     "ethers": "6.13.5"
   },
   "devDependencies": {
-    "standard": "^17.1.2"
+    "standard": "^17.1.2",
+    "typescript": "^5.8.3"
   }
 }
