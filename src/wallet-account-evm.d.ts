@@ -62,6 +62,13 @@ export default class WalletAccountEvm {
      */
     sendTransaction(tx: EvmTransaction): Promise<string>;
     /**
+     * Quotes a transaction.
+     *
+     * @param {EvmTransaction} tx - The transaction to quote.
+     * @returns {Promise<string>} The transaction’s fee (in weis).
+     */
+    quoteTransaction(tx: EvmTransaction): Promise<string>;
+    /**
      * Returns the account's native token balance.
      *
      * @returns {Promise<number>} The native token balance.
