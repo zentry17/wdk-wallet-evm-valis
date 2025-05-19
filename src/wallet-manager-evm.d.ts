@@ -38,7 +38,10 @@ export default class WalletManagerEvm {
     /**
      * Returns the wallet account at a specific BIP-44 derivation path.
      *
-     * @param {string} path - The derivation path suffix (e.g. "0'/0/0").
+     * @example
+     * // Returns the account with derivation path m/44'/60'/0'/0/1
+     * const account = await wallet.getAccountByPath("0'/0/1");
+     * @param {string} path - The derivation path (e.g. "0'/0/0").
      * @returns {Promise<WalletAccountEvm>} The account.
      */
     getAccountByPath(path: string): Promise<WalletAccountEvm>;

@@ -1,29 +1,9 @@
-export const BIP_44_ETH_DERIVATION_PATH_BASE: "m/44'/60'";
-/**
- * @typedef {Object} KeyPair
- * @property {string} publicKey - The public key.
- * @property {string} privateKey - The private key.
- */
-/**
- * @typedef {Object} EvmTransaction
- * @property {string} to - The transaction's recipient.
- * @property {number} value - The amount of ethers to send to the recipient (in weis).
- * @property {string} [data] - The transaction's data in hex format.
- * @property {number} [gasLimit] - The maximum amount of gas this transaction is permitted to use.
- * @property {number} [gasPrice] - The price (in wei) per unit of gas this transaction will pay.
- * @property {number} [maxFeePerGas] - The maximum price (in wei) per unit of gas this transaction will pay for the combined [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) block's base fee and this transaction's priority fee.
- * @property {number} [maxPriorityFeePerGas] - The price (in wei) per unit of gas this transaction will allow in addition to the [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) block's base fee to bribe miners into giving this transaction priority. This is included in the maxFeePerGas, so this will not affect the total maximum cost set with maxFeePerGas.
- */
-/**
- * @typedef {Object} EvmWalletConfig
- * @property {string} [rpcUrl] - rpc url of the provider.
- */
 export default class WalletAccountEvm {
     /**
      * Creates a new evm wallet account.
      *
      * @param {string} seedPhrase - The bip-39 mnemonic.
-     * @param {string} path - The BIP-44 derivation path suffix (e.g. "0'/0/0").
+     * @param {string} path - The BIP-44 derivation path (e.g. "0'/0/0").
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
     constructor(seedPhrase: string, path: string, config?: EvmWalletConfig);
@@ -137,7 +117,7 @@ export type EvmTransaction = {
 };
 export type EvmWalletConfig = {
     /**
-     * - rpc url of the provider.
+     * - The rpc url of the provider.
      */
     rpcUrl?: string;
 };

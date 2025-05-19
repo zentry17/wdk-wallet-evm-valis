@@ -15,13 +15,13 @@
 'use strict'
 
 import { HDNodeWallet, Mnemonic, JsonRpcProvider } from 'ethers'
+
 import WalletAccountEvm from './wallet-account-evm.js'
 
 const FEE_RATE_NORMAL_MULTIPLIER = 1.1,
       FEE_RATE_FAST_MULTIPLIER = 2.0
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
-
 
 export default class WalletManagerEvm {
   #seedPhrase
@@ -35,7 +35,7 @@ export default class WalletManagerEvm {
    */
   constructor (seedPhrase, config = {}) {
     if (!WalletManagerEvm.isValidSeedPhrase(seedPhrase)) {
-      throw new Error('Seed phrase is invalid.')
+      throw new Error('The seed phrase is invalid.')
     }
 
     this.#seedPhrase = seedPhrase
@@ -54,6 +54,7 @@ export default class WalletManagerEvm {
    */
   static getRandomSeedPhrase () {
     const wallet = HDNodeWallet.createRandom()
+
     return wallet.mnemonic.phrase
   }
 
@@ -92,12 +93,17 @@ export default class WalletManagerEvm {
   /**
    * Returns the wallet account at a specific BIP-44 derivation path.
    *
-   * @param {string} path - The derivation path suffix (e.g. "0'/0/0").
+   * @example
+   * // Returns the account with derivation path m/44'/60'/0'/0/1
+   * const account = await wallet.getAccountByPath("0'/0/1");
+   * @param {string} path - The derivation path (e.g. "0'/0/0").
    * @returns {Promise<WalletAccountEvm>} The account.
    */
   async getAccountByPath (path) {
+    const { url } = this.#provider._getConnection()
+
     return new WalletAccountEvm(this.#seedPhrase, path, {
-      rpcUrl: this.#provider?.connection?.url
+      rpcUrl: url
     })
   }
 
@@ -112,6 +118,7 @@ export default class WalletManagerEvm {
     }
 
     const feeData = await this.#provider.getFeeData()
+    
     const maxFeePerGas = Number(feeData.maxFeePerGas)
 
     return {

@@ -14,9 +14,7 @@
 
 'use strict'
 
-import { HDNodeWallet, JsonRpcProvider, Contract, verifyMessage } from 'ethers'
-
-export const BIP_44_ETH_DERIVATION_PATH_BASE = "m/44'/60'"
+import { Contract, HDNodeWallet, JsonRpcProvider, Mnemonic, verifyMessage } from 'ethers'
 
 /**
  * @typedef {Object} KeyPair
@@ -37,8 +35,10 @@ export const BIP_44_ETH_DERIVATION_PATH_BASE = "m/44'/60'"
 
 /**
  * @typedef {Object} EvmWalletConfig
- * @property {string} [rpcUrl] - rpc url of the provider.
+ * @property {string} [rpcUrl] - The rpc url of the provider.
  */
+
+const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
 export default class WalletAccountEvm {
   #account
@@ -47,21 +47,24 @@ export default class WalletAccountEvm {
    * Creates a new evm wallet account.
    *
    * @param {string} seedPhrase - The bip-39 mnemonic.
-   * @param {string} path - The BIP-44 derivation path suffix (e.g. "0'/0/0").
+   * @param {string} path - The BIP-44 derivation path (e.g. "0'/0/0").
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
   constructor (seedPhrase, path, config = {}) {
-    if (!HDNodeWallet.isValidMnemonic(seedPhrase)) {
-      throw new Error('Seed phrase is invalid.')
+    if (!Mnemonic.isValidMnemonic(seedPhrase)) {
+      throw new Error('The seed phrase is invalid.')
     }
 
-    const fullPath = `${BIP_44_ETH_DERIVATION_PATH_BASE}/${path}`
-    this.#account = HDNodeWallet.fromPhrase(seedPhrase).derivePath(fullPath)
+    const wallet = HDNodeWallet.fromPhrase(seedPhrase, undefined, BIP_44_ETH_DERIVATION_PATH_PREFIX)
+
+    this.#account = wallet.derivePath(path)
 
     const { rpcUrl } = config
+
     if (rpcUrl) {
-      const provider = new JsonRpcProvider(rpcUrl)    
-      this.#account= this.#account.connect(provider)
+      const provider = new JsonRpcProvider(rpcUrl)
+
+      this.#account = this.#account.connect(provider)
     }
   }
 
@@ -123,6 +126,7 @@ export default class WalletAccountEvm {
    */
   async verify (message, signature) {
     const address = await verifyMessage(message, signature)
+
     return address.toLowerCase() === this.#account.address.toLowerCase()
   }
 
@@ -138,6 +142,7 @@ export default class WalletAccountEvm {
     }
 
     const { hash } = await this.#account.sendTransaction(tx)
+
     return hash
   }
 
@@ -153,7 +158,9 @@ export default class WalletAccountEvm {
     }
 
     const gasLimit = await this.#account.provider.estimateGas(tx)
+    
     const { maxFeePerGas } = await this.#account.provider.getFeeData()
+
     return Number(gasLimit * maxFeePerGas)
   }
 
@@ -168,6 +175,7 @@ export default class WalletAccountEvm {
     }
 
     const balance = await this.#account.provider.getBalance(await this.getAddress())
+
     return Number(balance)
   }
 
@@ -185,6 +193,7 @@ export default class WalletAccountEvm {
     const abi = ['function balanceOf(address owner) view returns (uint256)']
     const token = new Contract(tokenAddress, abi, this.#account.provider)
     const balance = await token.balanceOf(await this.getAddress())
+    
     return Number(balance)
   }
 }
