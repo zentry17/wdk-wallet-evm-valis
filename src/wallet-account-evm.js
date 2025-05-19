@@ -59,7 +59,7 @@ export default class WalletAccountEvm {
 
     const { rpcUrl } = config
 
-    const node = HDNodeWallet.fromPhrase(seedPhrase).derivePath(path)
+    const node = HDNodeWallet.fromPhrase(seedPhrase).derivePath(`${BIP_44_ETH_DERIVATION_PATH_BASE}/${path}`)
 
     let wallet = node
     let provider = null
