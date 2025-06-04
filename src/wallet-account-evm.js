@@ -49,8 +49,6 @@ import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
 export default class WalletAccountEvm {
-  #path
-  #signingKey
   #account
 
   /**
@@ -91,7 +89,7 @@ export default class WalletAccountEvm {
    * @type {number}
    */
   get index () {
-    return +this.#path.split('/').pop()
+    return this.#account.index
   }
 
   /**
@@ -100,7 +98,7 @@ export default class WalletAccountEvm {
    * @type {string}
    */
   get path () {
-    return this.#path
+    return this.#account.path
   }
 
   /**
@@ -110,8 +108,8 @@ export default class WalletAccountEvm {
    */
   get keyPair () {
     return {
-      privateKey: this.#signingKey.privateKeyBuffer,
-      publicKey: this.#signingKey.publicKeyBuffer
+      privateKey: this.#account.privateKeyBuffer,
+      publicKey: this.#account.publicKeyBuffer
     }
   }
 
