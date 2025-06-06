@@ -21,6 +21,7 @@ import * as bip39 from 'bip39'
 import WalletAccountEvm from './wallet-account-evm.js'
 
 const FEE_RATE_NORMAL_MULTIPLIER = 1.1
+
 const FEE_RATE_FAST_MULTIPLIER = 2.0
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
