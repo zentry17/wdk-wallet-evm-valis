@@ -150,7 +150,7 @@ describe('WalletAccountEvm', () => {
       expect(result).toBe(false)
     })
 
-    test('throws on malformed signature input', async () => {
+    test('should throw on a malformed signature', async () => {
       await expect(account.verify(MESSAGE, 'A bad signature'))
         .rejects.toThrow('invalid BytesLike value')
     })
