@@ -43,7 +43,7 @@ describe('WalletManagerEvm', () => {
     test('should throw if the seed phrase is invalid', () => {
       // eslint-disable-next-line no-new
       expect(() => { new WalletManagerEvm(INVALID_SEED_PHRASE) })
-        .toThrow('The seed phrase is invalid.')
+        .toThrow('Invalid seed phrase.')
     })
   })
 
