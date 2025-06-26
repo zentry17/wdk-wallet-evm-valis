@@ -208,14 +208,11 @@ export default class WalletAccountEvm {
       throw new Error('The wallet must be connected to a provider to send transactions.')
     }
 
-    const transaction = await this._account.sendTransaction(tx)
+    const { fee } = await this.quoteSendTransaction(tx)
 
-    const { hash, fee } = await transaction.wait()
+    const { hash } = await this._account.sendTransaction(tx)
 
-    return {
-      hash,
-      fee: Number(fee)
-    }
+    return { hash, fee }
   }
 
   /**
