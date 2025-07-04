@@ -121,8 +121,6 @@ describe('Integration tests', () => {
       const { hash, fee } = await account0.sendTransaction(TRANSACTION)
       const receipt = await hre.ethers.provider.getTransactionReceipt(hash)
 
-      await new Promise(resolve => setTimeout(resolve, 200))
-
       expect(fee).toBe(estimatedFee)
       expect(receipt.status).toBe(1)
       actualFee = receipt.fee
