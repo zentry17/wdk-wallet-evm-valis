@@ -6,7 +6,7 @@ import { describe, expect, test, beforeAll, afterAll } from '@jest/globals'
 
 import WalletManagerEvm from '../../index.js'
 
-import TestToken from './../abis/TestToken.json'
+import TestToken from './../abis/TestToken.json' with { type: 'json' }
 
 const SEED_PHRASE = 'cook voyage document eight skate token alien guide drink uncle term abuse'
 
