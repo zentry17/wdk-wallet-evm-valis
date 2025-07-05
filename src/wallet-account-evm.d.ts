@@ -105,6 +105,13 @@ export default class WalletAccountEvm implements IWalletAccount {
      */
     quoteTransfer(options: TransferOptions): Promise<Omit<TransferResult, "hash">>;
     /**
+     * Returns a transaction's receipt.
+     *
+     * @param {string} hash - The transaction's hash.
+     * @returns {Promise<EvmTransactionReceipt | null>} – The receipt, or null if the transaction has not been included in a block yet.
+     */
+    getTransactionReceipt(hash: string): Promise<EvmTransactionReceipt | null>;
+    /**
      * Disposes the wallet account, erasing the private key from the memory.
      */
     dispose(): void;
@@ -119,6 +126,7 @@ export default class WalletAccountEvm implements IWalletAccount {
 }
 export type HDNodeWallet = import("ethers").HDNodeWallet;
 export type Eip1193Provider = import("ethers").Eip1193Provider;
+export type EvmTransactionReceipt = import("ethers").TransactionReceipt;
 export type IWalletAccount = import("@wdk/wallet").IWalletAccount;
 export type KeyPair = import("@wdk/wallet").KeyPair;
 export type TransactionResult = import("@wdk/wallet").TransactionResult;

@@ -357,4 +357,41 @@ describe('WalletAccountEvm', () => {
         .rejects.toThrow('The wallet must be connected to a provider to quote transfer operations.')
     })
   })
+
+  describe('getTransactionReceipt', () => {
+    test('should return the correct transaction receipt', async () => {
+      const [sender] = await hre.ethers.getSigners();
+
+      const TRANSACTION = {
+        to: "0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd",
+        value: 0
+      }
+
+      const { hash } = await sender.sendTransaction(TRANSACTION);
+
+      const receipt = await account.getTransactionReceipt(hash)
+
+      expect(receipt.hash).toBe(hash)
+      expect(receipt.to).toBe(TRANSACTION.to)
+      expect(receipt.status).toBe(1)
+    })
+
+    test('should return null if the transaction has not been included in a block yet', async () => {
+      const HASH = '0xe60970cd7685466037bac1ff337e08265ac9f48af70a12529bdca5caf5a2b14b'
+
+      const receipt = await account.getTransactionReceipt(HASH)
+
+      expect(receipt).toBe(null)
+    })
+
+    test('should throw if the account is not connected to a provider', async () => {
+      const HASH = '0xe60970cd7685466037bac1ff337e08265ac9f48af70a12529bdca5caf5a2b14b'
+
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0")
+
+      await expect(account.getTransactionReceipt(HASH))
+        .rejects.toThrow('The wallet must be connected to a provider to fetch transaction receipts.')
+    })
+  })
+
 })

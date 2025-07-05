@@ -22,6 +22,7 @@
 /** @typedef {import('./src/wallet-manager-evm.js').EvmWalletConfig} EvmWalletConfig */
 
 /** @typedef {import('./src/wallet-account-evm.js').EvmTransaction} EvmTransaction */
+/** @typedef {import('./src/wallet-account-evm.js').EvmTransactionReceipt} EvmTransactionReceipt */
 
 export { default } from './src/wallet-manager-evm.js'
 
