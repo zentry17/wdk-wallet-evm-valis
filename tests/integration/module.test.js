@@ -129,8 +129,6 @@ describe('@wdk/wallet-evm', () => {
     test('should decrease sender balance by transaction amount plus fee', async () => {
       const endBalance0 = await account0.getBalance()
 
-      console.log(hre.network.provider)
-
       const expectedBalance0 = startBalance0 - txAmount - parseInt(actualFee)
       expect(endBalance0).toEqual(expectedBalance0)
     })
@@ -176,10 +174,6 @@ describe('@wdk/wallet-evm', () => {
 
     test('should increase recipient balance by transaction amount', async () => {
       const endBalance1 = await account1.getBalance()
-
-      const getBalance1V2 = await hre.ethers.provider.getBalance(await account1.getAddress())
-      console.log(getBalance1V2)
-      console.log(await account1.getBalance())
 
       expect(endBalance1).toEqual(startBalance1 + txAmount)
     })
