@@ -173,7 +173,7 @@ export default class WalletAccountEvm {
     const address = await this.getAddress()
 
     const balance = await this._account.provider.getBalance(address)
-    console.log(this._account.provider)
+
     return Number(balance)
   }
 

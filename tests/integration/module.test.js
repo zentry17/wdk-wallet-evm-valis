@@ -64,12 +64,13 @@ describe('@wdk/wallet-evm', () => {
 
     beforeAll(async () => {
       await reset()
-      wallet = createWallet()
-      account0 = await wallet.getAccountByPath("0'/0/0")
-      account1 = await wallet.getAccountByPath("0'/0/1")
     })
 
     test('should create a wallet and derive 2 accounts using path', async () => {
+      wallet = createWallet()
+      account0 = await wallet.getAccountByPath("0'/0/0")
+      account1 = await wallet.getAccountByPath("0'/0/1")
+      
       expect(account0.index).toBe(ACCOUNT0.index)
 
       expect(account0.path).toBe(ACCOUNT0.path)
