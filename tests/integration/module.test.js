@@ -42,7 +42,7 @@ async function deployTestToken () {
   return contract
 }
 
-describe('Integration tests', () => {
+describe('@wdk/wallet-evm', () => {
   function createWallet () {
     return new WalletManagerEvm(SEED_PHRASE, {
       provider: hre.network.provider
