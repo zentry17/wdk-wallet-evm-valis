@@ -6,11 +6,11 @@ import { describe, expect, test, beforeEach, afterEach } from '@jest/globals'
 
 import WalletManagerEvm from '../../index.js'
 
-import TestToken from './../abis/TestToken.json' with { type: 'json' }
+import TestToken from './../artifacts/TestToken.json' with { type: 'json' }
 
 const SEED_PHRASE = 'cook voyage document eight skate token alien guide drink uncle term abuse'
 
-const ACCOUNT0 = {
+const ACCOUNT_0 = {
   index: 0,
   path: "m/44'/60'/0'/0/0",
   address: '0x405005C7c4422390F4B334F64Cf20E0b767131d0',
@@ -20,7 +20,7 @@ const ACCOUNT0 = {
   }
 }
 
-const ACCOUNT1 = {
+const ACCOUNT_1 = {
   index: 1,
   path: "m/44'/60'/0'/0/1",
   address: '0xcC81e04BadA16DEf9e1AFB027B859bec42BE49dB',
@@ -29,6 +29,9 @@ const ACCOUNT1 = {
     publicKey: '02f8d04c3de44e53e5b0ef2f822a29087e6af80114560956518767c64fec6b0f69'
   }
 }
+
+const INITIAL_BALANCE = 1_000_000_000_000_000_000,
+      INITIAL_TOKEN_BALANCE = 1_000_000
 
 async function deployTestToken () {
   const [signer] = await hre.ethers.getSigners()
@@ -43,254 +46,238 @@ async function deployTestToken () {
 }
 
 describe('@wdk/wallet-evm', () => {
-  let wallet
-  let account0, account1
+  let testToken,
+      wallet
+  
+  async function sendEthersTo (to, value) {
+    const [signer] = await hre.ethers.getSigners()
+    const transaction = await signer.sendTransaction({ to, value })
+    await transaction.wait()
+  }
 
-  async function reset () {
-    await hre.network.provider.send('hardhat_reset')
+  async function sendTestTokensTo (to, value) {
+    const transaction = await testToken.transfer(to, value)
+    await transaction.wait()
   }
 
   beforeEach(async () => {
-    await reset()
+    testToken = await deployTestToken()
+
+    for (const account of [ACCOUNT_0, ACCOUNT_1]) {
+      await sendEthersTo(account.address, BigInt(INITIAL_BALANCE))
+
+      await sendTestTokensTo(account.address, BigInt(INITIAL_TOKEN_BALANCE))
+    }
+  
     wallet = new WalletManagerEvm(SEED_PHRASE, {
       provider: hre.network.provider
     })
-    account0 = await wallet.getAccountByPath("0'/0/0")
-    account1 = await wallet.getAccountByPath("0'/0/1")
   })
 
   afterEach(async () => {
     await hre.network.provider.send('hardhat_reset')
   })
 
-  test('should derive an account, quote the cost of a tx and check the fee', async () => {
-    const txAmount = 1_000
-
-    wallet = new WalletManagerEvm(SEED_PHRASE, {
-      provider: hre.network.provider
-    })
-    account0 = await wallet.getAccountByPath("0'/0/0")
-    account1 = await wallet.getAccountByPath("0'/0/1")
-
-    expect(account0.index).toBe(ACCOUNT0.index)
-
-    expect(account0.path).toBe(ACCOUNT0.path)
-
-    expect(account0.keyPair).toEqual({
-      privateKey: new Uint8Array(Buffer.from(ACCOUNT0.keyPair.privateKey, 'hex')),
-      publicKey: new Uint8Array(Buffer.from(ACCOUNT0.keyPair.publicKey, 'hex'))
-    })
-
-    expect(account1.index).toBe(ACCOUNT1.index)
-
-    expect(account1.path).toBe(ACCOUNT1.path)
-
-    expect(account1.keyPair).toEqual({
-      privateKey: new Uint8Array(Buffer.from(ACCOUNT1.keyPair.privateKey, 'hex')),
-      publicKey: new Uint8Array(Buffer.from(ACCOUNT1.keyPair.publicKey, 'hex'))
-    })
+  test('should derive an account, quote the cost of a tx and send the tx', async () => {
+    const account = await wallet.getAccount(0)
 
     const TRANSACTION = {
-      to: await account1.getAddress(),
-      value: txAmount
+      to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      value: 1_000
     }
 
-    const EXPECTED_FEE = 63_003_000_000_000
+    const EXPECTED_FEE = 42_921_547_517_892
 
-    const { fee: estimatedFee } = await account0.quoteSendTransaction(TRANSACTION)
+    const { fee: feeEstimate } = await account.quoteSendTransaction(TRANSACTION)
 
-    expect(estimatedFee).toBe(EXPECTED_FEE)
+    expect(feeEstimate).toBe(EXPECTED_FEE)
 
-    const { hash, fee } = await account0.sendTransaction(TRANSACTION)
-    const receipt = await hre.ethers.provider.getTransactionReceipt(hash)
+    const { hash, fee } = await account.sendTransaction(TRANSACTION)
 
-    expect(fee).toBe(estimatedFee)
-    expect(receipt.status).toBe(1)
+    const transaction = await hre.ethers.provider.getTransaction(hash)
+
+    expect(transaction.hash).toBe(hash)
+    expect(transaction.to).toBe(TRANSACTION.to)
+    expect(transaction.value).toBe(BigInt(TRANSACTION.value))
+
+    expect(fee).toBe(EXPECTED_FEE)
   })
 
-  test('should send a tx from account 0 to 1 and check the balances', async () => {
-    const txAmount = 1_000
-
+  test('should derive two accounts, send a tx from account 1 to 2 and get the correct balances', async () => {
+    const account0 = await wallet.getAccount(0),
+          account1 = await wallet.getAccount(1)
+    
     const TRANSACTION = {
       to: await account1.getAddress(),
-      value: txAmount
+      value: 1_000
     }
-
-    const startBalance0 = await account0.getBalance()
-    const startBalance1 = await account1.getBalance()
 
     const { hash } = await account0.sendTransaction(TRANSACTION)
     const receipt = await hre.ethers.provider.getTransactionReceipt(hash)
+    const fee = parseInt(receipt.fee)
 
-    expect(receipt.status).toBe(1)
+    const balanceAccount0 = await account0.getBalance(),
+          balanceAccount1 = await account1.getBalance()
 
-    const actualFee = startBalance0 - await account0.getBalance() - txAmount
-    
-    const endBalance0 = await account0.getBalance()
-    const expectedBalance0 = startBalance0 - txAmount - parseInt(actualFee)
-    expect(endBalance0).toEqual(expectedBalance0)
+    expect(balanceAccount0).toBe(INITIAL_BALANCE - fee - 1_000)
 
-    const endBalance1 = await account1.getBalance()
-    expect(endBalance1).toEqual(startBalance1 + txAmount)
+    expect(balanceAccount1).toBe(INITIAL_BALANCE + 1_000)
   })
 
-  test('should quote the cost of sending test tokens to from account0 to account1 and check the fee', async () => {
-    const txAmount = 100
-    const testToken = await deployTestToken()
+  test("should derive an account by its path, quote the cost of transferring a token and transfer a token", async () => {
+    const account = await wallet.getAccountByPath("0'/0/0")
 
-    const TRANSACTION = {
+    const TRANSFER = {
       token: testToken.target,
-      recipient: await account1.getAddress(),
-      amount: txAmount
+      recipient: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      amount: 100
     }
 
-    const EXPECTED_FEE = 143_352_000_000_000
+    const EXPECTED_FEE = 106_538_470_978_176
 
-    const { fee } = await account0.quoteTransfer(TRANSACTION)
+    const { fee: feeEstimate } = await account.quoteTransfer(TRANSFER)
+
+    expect(feeEstimate).toBe(EXPECTED_FEE)
+
+    const { hash, fee } = await account.transfer(TRANSFER)
+    const transaction = await hre.ethers.provider.getTransaction(hash)
+    const data = testToken.interface.encodeFunctionData('transfer', [TRANSFER.recipient, TRANSFER.amount])
+
+    expect(transaction.hash).toBe(hash)
+    expect(transaction.to).toBe(TRANSFER.token)
+    expect(transaction.value).toBe(0n)
+
+    expect(transaction.data).toBe(data)
 
     expect(fee).toBe(EXPECTED_FEE)
-
-    const { hash } = await account0.transfer(TRANSACTION)
-    const receipt = await hre.ethers.provider.getTransactionReceipt(hash)
-
-    expect(receipt.status).toBe(1)
   })
 
-  test('should send test tokens from account 0 to 1 and check the balances', async () => {
-    const txAmount = 100
-    const testToken = await deployTestToken()
-
-    const TRANSACTION = {
+  test('should derive two accounts by their paths, transfer a token from account 1 to 2 and get the correct balances and token balances', async () => {
+    const account0 = await wallet.getAccountByPath("0'/0/0"),
+          account1 = await wallet.getAccountByPath("0'/0/1")
+    
+    const TRANSFER = {
       token: testToken.target,
       recipient: await account1.getAddress(),
-      amount: txAmount
+      amount: 100
     }
 
-    const startTokenBalance0 = await account0.getTokenBalance(testToken.target)
-    const startTokenBalance1 = await account1.getTokenBalance(testToken.target)
-
-    const { hash } = await account0.transfer(TRANSACTION)
+    const { hash } = await account0.transfer(TRANSFER)
     const receipt = await hre.ethers.provider.getTransactionReceipt(hash)
+    const fee = parseInt(receipt.fee)
 
-    expect(receipt.status).toBe(1)
+    const balanceAccount0 = await account0.getBalance()
 
-    const endTokenBalance0 = await account0.getTokenBalance(testToken.target)
-    const expectedTokenBalance0 = startTokenBalance0 - txAmount
-    expect(endTokenBalance0).toEqual(expectedTokenBalance0)
+    expect(balanceAccount0).toBe(INITIAL_BALANCE - fee)
 
-    const endTokenBalance1 = await account1.getTokenBalance(testToken.target)
-    expect(endTokenBalance1).toEqual(startTokenBalance1 + txAmount)
+    const tokenBalanceAccount0 = await account0.getTokenBalance(testToken.target),
+          tokenBalanceAccount1 = await account1.getTokenBalance(testToken.target)
+
+    expect(tokenBalanceAccount0).toBe(INITIAL_TOKEN_BALANCE - 100)
+
+    expect(tokenBalanceAccount1).toBe(INITIAL_TOKEN_BALANCE + 100)
   })
 
-  test('should approve and send test tokens to user 1 from user 0 using transferFrom', async () => {
-    const txAmount = 100
-    const testToken = await deployTestToken()
+  test('should derive two accounts, approve x tokens from account 1 to 2, transfer x tokens from account 1 to 2 and get the correct balances and token balances', async () => {
+    const account0 = await wallet.getAccount(0),
+          account1 = await wallet.getAccount(1)
 
-    const tokenBalance = await account0.getTokenBalance(testToken.target)
-    expect(tokenBalance).toBe(1000000000000000000)
-
-    const startTokenBalance0 = await account0.getTokenBalance(testToken.target)
-    const startTokenBalance1 = await account1.getTokenBalance(testToken.target)
-
-    const TRANSACTION_WITH_DATA_APPROVE = {
+    const TRANSACTION_APPROVE = {
       to: testToken.target,
       value: 0,
       data: testToken.interface.encodeFunctionData('approve', [
         await account1.getAddress(),
-        txAmount
+        100
       ])
     }
 
-    const { hash: hashApprove } = await account0.sendTransaction(TRANSACTION_WITH_DATA_APPROVE)
+    const { hash: approveHash } = await account0.sendTransaction(TRANSACTION_APPROVE)
+    const approveReceipt = await hre.ethers.provider.getTransactionReceipt(approveHash)
+    const approveFee = parseInt(approveReceipt.fee)
 
-    const receiptApprove = await hre.ethers.provider.getTransactionReceipt(hashApprove)
-
-    expect(receiptApprove.status).toBe(1)
-
-    const allowance = await testToken.allowance(await account0.getAddress(), await account1.getAddress())
-    expect(allowance).toBe(BigInt(txAmount))
-
-    const TRANSACTION = {
-      to: await account1.getAddress(),
-      value: 1_000_000_000_000_000
-    }
-    const { hash: hashSend } = await account0.sendTransaction(TRANSACTION)
-    const receiptSend = await hre.ethers.provider.getTransactionReceipt(hashSend)
-
-    expect(receiptSend.status).toBe(1)
-    expect(await account1.getBalance()).toBeGreaterThan(0)
-
-    const TRANSACTION_WITH_DATA_TRANSFER_FROM = {
-      to: testToken.target,
+    const TRANSACTION_TRANSFER_FROM = {
       from: await account1.getAddress(),
+      to: testToken.target,
       value: 0,
       data: testToken.interface.encodeFunctionData('transferFrom', [
         await account0.getAddress(),
         await account1.getAddress(),
-        txAmount
+        100
       ])
     }
 
-    const { hash: hashTransferFrom } = await account1.sendTransaction(TRANSACTION_WITH_DATA_TRANSFER_FROM)
+    const { hash: transferFromHash } = await account1.sendTransaction(TRANSACTION_TRANSFER_FROM)
+    const transferFromReceipt = await hre.ethers.provider.getTransactionReceipt(transferFromHash)
+    const transferFromFee = parseInt(transferFromReceipt.fee)
 
-    const receiptTransferFrom = await hre.ethers.provider.getTransactionReceipt(hashTransferFrom)
+    const balanceAccount0 = await account0.getBalance(),
+          balanceAccount1 = await account1.getBalance()
 
-    expect(receiptTransferFrom.status).toBe(1)
+    expect(balanceAccount0).toBe(INITIAL_BALANCE - approveFee)
 
-    const endTokenBalance0 = await account0.getTokenBalance(testToken.target)
+    expect(balanceAccount1).toBe(INITIAL_BALANCE - transferFromFee)
 
-    const expectedTokenBalance0 = startTokenBalance0 - txAmount
-    expect(endTokenBalance0).toEqual(expectedTokenBalance0)
+    const tokenBalanceAccount0 = await account0.getTokenBalance(testToken.target),
+          tokenBalanceAccount1 = await account1.getTokenBalance(testToken.target)
 
-    const endTokenBalance1 = await account1.getTokenBalance(testToken.target)
+    expect(tokenBalanceAccount0).toBe(INITIAL_TOKEN_BALANCE - 100)
 
-    expect(endTokenBalance1).toEqual(startTokenBalance1 + txAmount)
+    expect(tokenBalanceAccount1).toBe(INITIAL_TOKEN_BALANCE + 100)
   })
 
-  test('should sign a message and verify its signature', async () => {
-    const message = 'Hello, world!'
+  test('should derive an account, sign a message and verify its signature', async () => {
+    const account = await wallet.getAccount(0)
+    
+    const MESSAGE = 'Hello, world!'
 
-    const signature = await account0.sign(message)
-    expect(signature).toBeDefined()
-
-    const verified = await account0.verify(message, signature)
-    expect(verified).toBe(true)
+    const signature = await account.sign(MESSAGE)
+    const isValid = await account.verify(MESSAGE, signature)
+    expect(isValid).toBe(true)
   })
 
-  test('should dispose the wallet and throw an error when trying to access the private key', async () => {
-    const message = 'Hello, world!'
-
+  test('should dispose the wallet and erase the private keys of the accounts', async () => {
+    const account0 = await wallet.getAccount(0),
+          account1 = await wallet.getAccount(1)
+    
     wallet.dispose()
 
-    expect(() => {
-        account0.keyPair.privateKey // eslint-disable-line
-    }).toThrow('Uint8Array expected')
-
-    expect(() => {
-        account1.keyPair.privateKey // eslint-disable-line
-    }).toThrow('Uint8Array expected')
-
-    await expect(account0.sendTransaction({ to: await account1.getAddress(), value: 1000 })).rejects.toThrow('Uint8Array expected')
-
-    await expect(account0.sign(message)).rejects.toThrow('Uint8Array expected')
-  })
-
-  test('should create a wallet with a low transfer max fee, send a transaction with a low transfer max fee and throw an error', async () => {
-    const maxFee = 1_000_000
-    const testToken = await deployTestToken()
-    wallet = new WalletManagerEvm(SEED_PHRASE, {
-      provider: hre.network.provider,
-      transferMaxFee: maxFee
-    })
-    account0 = await wallet.getAccountByPath("0'/0/0")
-    account1 = await wallet.getAccountByPath("0'/0/1")
+    const MESSAGE = 'Hello, world!'
 
     const TRANSACTION = {
-      token: testToken.target,
-      recipient: await account1.getAddress(),
-      amount: 100000000000000
+      to: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      value: 1_000
     }
 
-    await expect(account0.transfer(TRANSACTION)).rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
+    const TRANSFER = {
+      token: testToken.target,
+      recipient: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      amount: 100
+    }
+
+    for (const account of [account0, account1]) {
+      expect(account.keyPair.privateKey).toBe(undefined)
+
+      await expect(account.sign(MESSAGE)).rejects.toThrow('Uint8Array expected')
+      await expect(account.sendTransaction(TRANSACTION)).rejects.toThrow('Uint8Array expected')
+      await expect(account.transfer(TRANSFER)).rejects.toThrow('Uint8Array expected')
+    }
+  })
+
+  test('should create a wallet with a low transfer max fee, derive an account, try to transfer some tokens and gracefully fail', async () => {
+    const wallet = new WalletManagerEvm(SEED_PHRASE, {
+      provider: hre.network.provider,
+      transferMaxFee: 0
+    })
+
+    const account = await wallet.getAccount(0)
+
+    const TRANSFER = {
+      token: testToken.target,
+      recipient: '0xa460AEbce0d3A4BecAd8ccf9D6D4861296c503Bd',
+      amount: 100
+    }
+
+    await expect(account.transfer(TRANSFER))
+      .rejects.toThrow('Exceeded maximum fee cost for transfer operation.')
   })
 })

@@ -31,10 +31,14 @@ secp256k1.etc.hmacSha256Sync = (key, ...messages) =>
 export default class MemorySafeSigningKey extends SigningKey {
   #privateKeyBuffer
 
+  #publicKeyBuffer
+
   constructor (privateKeyBuffer) {
     super(NULL)
 
     this.#privateKeyBuffer = privateKeyBuffer
+
+    this.#publicKeyBuffer = secp256k1.getPublicKey(privateKeyBuffer, true)
   }
 
   get publicKey () {
@@ -50,7 +54,7 @@ export default class MemorySafeSigningKey extends SigningKey {
   }
 
   get publicKeyBuffer () {
-    return secp256k1.getPublicKey(this.#privateKeyBuffer, true)
+    return this.#publicKeyBuffer
   }
 
   sign (digest) {

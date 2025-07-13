@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, test } from '@jest/globals'
 
 import { WalletAccountEvm } from '../index.js'
 
-import TestToken from './abis/TestToken.json' with { type: 'json' }
+import TestToken from './artifacts/TestToken.json' with { type: 'json' }
 
 const SEED_PHRASE = 'cook voyage document eight skate token alien guide drink uncle term abuse'
 
@@ -26,6 +26,9 @@ const ACCOUNT = {
   }
 }
 
+const INITIAL_BALANCE = 1_000_000_000_000_000_000,
+      INITIAL_TOKEN_BALANCE = 1_000_000
+
 async function deployTestToken () {
   const [signer] = await hre.ethers.getSigners()
 
@@ -42,38 +45,33 @@ describe('WalletAccountEvm', () => {
   let testToken,
       account
 
-  async function giveEthersTo (recipient, value) {
+  async function sendEthersTo (to, value) {
     const [signer] = await hre.ethers.getSigners()
-
-    const transaction = await signer.sendTransaction({
-      to: recipient,
-      value
-    })
-
+    const transaction = await signer.sendTransaction({ to, value })
     await transaction.wait()
   }
 
-  async function giveTestTokensTo (recipient, value) {
-    const transaction = await testToken.transfer(
-      recipient,
-      value
-    )
-
+  async function sendTestTokensTo (to, value) {
+    const transaction = await testToken.transfer(to, value)
     await transaction.wait()
   }
 
   beforeEach(async () => {
-    await hre.network.provider.send('hardhat_reset')
-
     testToken = await deployTestToken()
+
+    await sendEthersTo(ACCOUNT.address, BigInt(INITIAL_BALANCE))
+
+    await sendTestTokensTo(ACCOUNT.address, BigInt(INITIAL_TOKEN_BALANCE))
 
     account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
       provider: hre.network.provider
     })
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     account.dispose()
+
+    await hre.network.provider.send('hardhat_reset')
   })
 
   describe('constructor', () => {
@@ -161,15 +159,13 @@ describe('WalletAccountEvm', () => {
 
   describe('getBalance', () => {
     test('should return the correct balance of the account', async () => {
-      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/1", {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider
       })
 
-      await giveEthersTo(await account.getAddress(), 12_345)
-
       const balance = await account.getBalance()
 
-      expect(balance).toBe(12_345)
+      expect(balance).toBe(INITIAL_BALANCE)
     })
 
     test('should throw if the account is not connected to a provider', async () => {
@@ -182,15 +178,13 @@ describe('WalletAccountEvm', () => {
 
   describe('getTokenBalance', () => {
     test('should return the correct token balance of the account', async () => {
-      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/1", {
+      const account = new WalletAccountEvm(SEED_PHRASE, "0'/0/0", {
         provider: hre.network.provider
       })
 
-      await giveTestTokensTo(await account.getAddress(), 67_890)
-
       const balance = await account.getTokenBalance(testToken.target)
 
-      expect(balance).toBe(67_890)
+      expect(balance).toBe(INITIAL_TOKEN_BALANCE)
     })
 
     test('should throw if the account is not connected to a provider', async () => {
@@ -208,7 +202,7 @@ describe('WalletAccountEvm', () => {
         value: 1_000
       }
 
-      const EXPECTED_FEE = 57_752_750_000_000
+      const EXPECTED_FEE = 49_611_983_472_910
 
       const { hash, fee } = await account.sendTransaction(TRANSACTION)
 
@@ -228,7 +222,7 @@ describe('WalletAccountEvm', () => {
         data: testToken.interface.encodeFunctionData('balanceOf', ['0x636e9c21f27d9401ac180666bf8DC0D3FcEb0D24'])
       }
 
-      const EXPECTED_FEE = 66_814_000_000_000
+      const EXPECTED_FEE = 57_395_969_261_360
 
       const { hash, fee } = await account.sendTransaction(TRANSACTION_WITH_DATA)
 
@@ -257,7 +251,7 @@ describe('WalletAccountEvm', () => {
         value: 1_000
       }
 
-      const EXPECTED_FEE = 57_752_750_000_000
+      const EXPECTED_FEE = 49_611_983_472_910
 
       const { fee } = await account.quoteSendTransaction(TRANSACTION)
 
@@ -271,7 +265,7 @@ describe('WalletAccountEvm', () => {
         data: testToken.interface.encodeFunctionData('balanceOf', ['0x636e9c21f27d9401ac180666bf8DC0D3FcEb0D24'])
       }
 
-      const EXPECTED_FEE = 66_814_000_000_000
+      const EXPECTED_FEE = 57_395_969_261_360
 
       const { fee } = await account.quoteSendTransaction(TRANSACTION_WITH_DATA)
 
@@ -294,17 +288,15 @@ describe('WalletAccountEvm', () => {
         amount: 100
       }
 
-      const EXPECTED_FEE = 143_352_000_000_000
+      const EXPECTED_FEE = 123_145_253_772_480
 
       const { hash, fee } = await account.transfer(TRANSFER)
-
       const transaction = await hre.ethers.provider.getTransaction(hash)
+      const data = testToken.interface.encodeFunctionData('transfer', [TRANSFER.recipient, TRANSFER.amount])
 
       expect(transaction.hash).toBe(hash)
       expect(transaction.to).toBe(TRANSFER.token)
       expect(transaction.value).toBe(BigInt(0))
-
-      const data = testToken.interface.encodeFunctionData('transfer', [TRANSFER.recipient, TRANSFER.amount])
 
       expect(transaction.data).toBe(data)
 
@@ -343,7 +335,7 @@ describe('WalletAccountEvm', () => {
         amount: 100
       }
 
-      const EXPECTED_FEE = 143_352_000_000_000
+      const EXPECTED_FEE = 123_145_253_772_480
 
       const { fee } = await account.quoteTransfer(TRANSFER)
 
