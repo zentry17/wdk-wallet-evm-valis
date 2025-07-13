@@ -94,7 +94,7 @@ export default class WalletAccountEvm {
     if (provider) {
       provider = typeof provider === 'string'
         ? new JsonRpcProvider(provider)
-        : new BrowserProvider(provider)
+        : new BrowserProvider(provider, undefined, { cacheTimeout: -1 })
 
       this._account = this._account.connect(provider)
     }
