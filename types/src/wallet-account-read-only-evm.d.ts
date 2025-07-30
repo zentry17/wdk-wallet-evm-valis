@@ -2,7 +2,7 @@ export default class WalletAccountReadOnlyEvm extends AbstractWalletAccountReadO
     /**
      * Creates a new evm read-only wallet account.
      *
-     * @param {string} address - The account's address.
+     * @param {string} [address] - The account's address. If not provided, it must be set after construction with the {@link setAddress} method.
      * @param {Omit<EvmWalletConfig, 'transferMaxFee'>} [config] - The configuration object.
      */
     constructor(address: string, config?: Omit<EvmWalletConfig, "transferMaxFee">);
