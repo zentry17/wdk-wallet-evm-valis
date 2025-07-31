@@ -28,6 +28,7 @@ const NULL = '0x0000000000000000000000000000000000000000000000000000000000000000
 secp256k1.etc.hmacSha256Sync = (key, ...messages) =>
   hmac(sha256, key, secp256k1.etc.concatBytes(...messages))
 
+/** @internal */
 export default class MemorySafeSigningKey extends SigningKey {
   #privateKeyBuffer
 

@@ -112,6 +112,7 @@ function compareWithCurveOrder (buffer, offset = 0) {
   return 0
 }
 
+/** @internal */
 export default class MemorySafeHDNodeWallet extends BaseWallet {
   constructor (guard, signingKey, parentFingerprint, chainCode, path, index, depth, mnemonic, provider) {
     super(signingKey, provider)
