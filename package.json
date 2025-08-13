@@ -35,11 +35,9 @@
   "exports": {
     ".": {
       "bare": "./bare.js",
-      "import": "./index.js",
-      "types": "./index.d.ts"
+      "types": "./index.d.ts",
+      "default": "./index.js"
     },
-    "./package": {
-      "default": "./package.json"
-    }
+     "./package": "./package.json"
   }
 }
