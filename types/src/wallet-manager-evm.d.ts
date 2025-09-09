@@ -1,30 +1,39 @@
-export default class WalletManagerEvm {
+export default class WalletManagerEvm extends WalletManager {
     /**
-     * Returns a random [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+     * Multiplier for normal fee rate calculations (in %).
      *
-     * @returns {string} The seed phrase.
+     * @protected
+     * @type {bigint}
      */
-    static getRandomSeedPhrase(): string;
+    protected static _FEE_RATE_NORMAL_MULTIPLIER: bigint;
     /**
-     * Checks if a seed phrase is valid.
+     * Multiplier for fast fee rate calculations (in %).
      *
-     * @param {string} seedPhrase - The seed phrase.
-     * @returns {boolean} True if the seed phrase is valid.
+     * @protected
+     * @type {bigint}
      */
-    static isValidSeedPhrase(seedPhrase: string): boolean;
+    protected static _FEE_RATE_FAST_MULTIPLIER: bigint;
     /**
      * Creates a new wallet manager for evm blockchains.
      *
-     * @param {string} seedPhrase - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+     * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
      * @param {EvmWalletConfig} [config] - The configuration object.
      */
-    constructor(seedPhrase: string, config?: EvmWalletConfig);
+    constructor(seed: string | Uint8Array, config?: EvmWalletConfig);
     /**
-     * The seed phrase of the wallet.
+     * The evm wallet configuration.
      *
-     * @type {string}
+     * @protected
+     * @type {EvmWalletConfig}
      */
-    get seedPhrase(): string;
+    protected _config: EvmWalletConfig;
+    /**
+     * An ethers provider to interact with a node of the blockchain.
+     *
+     * @protected
+     * @type {Provider | undefined}
+     */
+    protected _provider: Provider | undefined;
     /**
      * Returns the wallet account at a specific index (see [BIP-44](https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki)).
      *
@@ -48,13 +57,12 @@ export default class WalletManagerEvm {
     /**
      * Returns the current fee rates.
      *
-     * @returns {Promise<{ normal: number, fast: number }>} The fee rates (in weis).
+     * @returns {Promise<FeeRates>} The fee rates (in weis).
      */
-    getFeeRates(): Promise<{
-        normal: number;
-        fast: number;
-    }>;
-    #private;
+    getFeeRates(): Promise<FeeRates>;
 }
+export type Provider = import("ethers").Provider;
+export type FeeRates = import("@wdk/wallet").FeeRates;
 export type EvmWalletConfig = import("./wallet-account-evm.js").EvmWalletConfig;
+import WalletManager from '@wdk/wallet';
 import WalletAccountEvm from './wallet-account-evm.js';

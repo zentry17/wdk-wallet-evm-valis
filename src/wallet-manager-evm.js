@@ -14,67 +14,65 @@
 
 'use strict'
 
-import { HDNodeWallet, Mnemonic, JsonRpcProvider } from 'ethers'
+import WalletManager from '@wdk/wallet'
+
+import { BrowserProvider, JsonRpcProvider } from 'ethers'
 
 import WalletAccountEvm from './wallet-account-evm.js'
 
-const FEE_RATE_NORMAL_MULTIPLIER = 1.1,
-      FEE_RATE_FAST_MULTIPLIER = 2.0
+/** @typedef {import('ethers').Provider} Provider */
+
+/** @typedef {import("@wdk/wallet").FeeRates} FeeRates */
 
 /** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
 
-export default class WalletManagerEvm {
-  #seedPhrase
-  #provider
+export default class WalletManagerEvm extends WalletManager {
+  /**
+   * Multiplier for normal fee rate calculations (in %).
+   *
+   * @protected
+   * @type {bigint}
+   */
+  static _FEE_RATE_NORMAL_MULTIPLIER = 110n
+
+  /**
+   * Multiplier for fast fee rate calculations (in %).
+   *
+   * @protected
+   * @type {bigint}
+   */
+  static _FEE_RATE_FAST_MULTIPLIER = 200n
 
   /**
    * Creates a new wallet manager for evm blockchains.
    *
-   * @param {string} seedPhrase - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
-  constructor (seedPhrase, config = {}) {
-    if (!WalletManagerEvm.isValidSeedPhrase(seedPhrase)) {
-      throw new Error('The seed phrase is invalid.')
+  constructor (seed, config = {}) {
+    super(seed, config)
+
+    /**
+     * The evm wallet configuration.
+     *
+     * @protected
+     * @type {EvmWalletConfig}
+     */
+    this._config = config
+
+    const { provider } = config
+
+    if (provider) {
+      /**
+       * An ethers provider to interact with a node of the blockchain.
+       *
+       * @protected
+       * @type {Provider | undefined}
+       */
+      this._provider = typeof provider === 'string'
+        ? new JsonRpcProvider(provider)
+        : new BrowserProvider(provider)
     }
-
-    this.#seedPhrase = seedPhrase
-
-    const { rpcUrl } = config
-
-    if (rpcUrl) {
-      this.#provider = new JsonRpcProvider(rpcUrl)
-    }
-  }
-
-  /**
-   * Returns a random [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
-   *
-   * @returns {string} The seed phrase.
-   */
-  static getRandomSeedPhrase () {
-    const wallet = HDNodeWallet.createRandom()
-
-    return wallet.mnemonic.phrase
-  }
-
-  /**
-   * Checks if a seed phrase is valid.
-   *
-   * @param {string} seedPhrase - The seed phrase.
-   * @returns {boolean} True if the seed phrase is valid.
-   */
-  static isValidSeedPhrase (seedPhrase) {
-    return Mnemonic.isValidMnemonic(seedPhrase)
-  }
-
-  /**
-   * The seed phrase of the wallet.
-   *
-   * @type {string}
-   */
-  get seedPhrase () {
-    return this.#seedPhrase
   }
 
   /**
@@ -100,30 +98,30 @@ export default class WalletManagerEvm {
    * @returns {Promise<WalletAccountEvm>} The account.
    */
   async getAccountByPath (path) {
-    const { url } = this.#provider._getConnection()
+    if (!this._accounts[path]) {
+      const account = new WalletAccountEvm(this.seed, path, this._config)
 
-    return new WalletAccountEvm(this.#seedPhrase, path, {
-      rpcUrl: url
-    })
+      this._accounts[path] = account
+    }
+
+    return this._accounts[path]
   }
 
   /**
    * Returns the current fee rates.
    *
-   * @returns {Promise<{ normal: number, fast: number }>} The fee rates (in weis).
+   * @returns {Promise<FeeRates>} The fee rates (in weis).
    */
   async getFeeRates () {
-    if (!this.#provider) {
+    if (!this._provider) {
       throw new Error('The wallet must be connected to a provider to get fee rates.')
     }
 
-    const feeData = await this.#provider.getFeeData()
-    
-    const maxFeePerGas = Number(feeData.maxFeePerGas)
+    const { maxFeePerGas } = await this._provider.getFeeData()
 
     return {
-      normal: Math.round(maxFeePerGas * FEE_RATE_NORMAL_MULTIPLIER),
-      fast: maxFeePerGas * FEE_RATE_FAST_MULTIPLIER
+      normal: maxFeePerGas * WalletManagerEvm._FEE_RATE_NORMAL_MULTIPLIER / 100n,
+      fast: maxFeePerGas * WalletManagerEvm._FEE_RATE_FAST_MULTIPLIER / 100n
     }
   }
 }

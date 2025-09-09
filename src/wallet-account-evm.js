@@ -14,57 +14,71 @@
 
 'use strict'
 
-import { Contract, HDNodeWallet, JsonRpcProvider, Mnemonic, verifyMessage } from 'ethers'
+import { verifyMessage } from 'ethers'
 
-/**
- * @typedef {Object} KeyPair
- * @property {string} publicKey - The public key.
- * @property {string} privateKey - The private key.
- */
+import * as bip39 from 'bip39'
 
-/**
- * @typedef {Object} EvmTransaction
- * @property {string} to - The transaction's recipient.
- * @property {number} value - The amount of ethers to send to the recipient (in weis).
- * @property {string} [data] - The transaction's data in hex format.
- * @property {number} [gasLimit] - The maximum amount of gas this transaction is permitted to use.
- * @property {number} [gasPrice] - The price (in wei) per unit of gas this transaction will pay.
- * @property {number} [maxFeePerGas] - The maximum price (in wei) per unit of gas this transaction will pay for the combined [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) block's base fee and this transaction's priority fee.
- * @property {number} [maxPriorityFeePerGas] - The price (in wei) per unit of gas this transaction will allow in addition to the [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559) block's base fee to bribe miners into giving this transaction priority. This is included in the maxFeePerGas, so this will not affect the total maximum cost set with maxFeePerGas.
- */
+import WalletAccountReadOnlyEvm from './wallet-account-read-only-evm.js'
 
-/**
- * @typedef {Object} EvmWalletConfig
- * @property {string} [rpcUrl] - The rpc url of the provider.
- */
+import MemorySafeHDNodeWallet from './memory-safe/hd-node-wallet.js'
+
+/** @typedef {import('ethers').HDNodeWallet} HDNodeWallet */
+
+/** @typedef {import('@wdk/wallet').IWalletAccount} IWalletAccount */
+
+/** @typedef {import('@wdk/wallet').KeyPair} KeyPair */
+/** @typedef {import('@wdk/wallet').TransactionResult} TransactionResult */
+/** @typedef {import('@wdk/wallet').TransferOptions} TransferOptions */
+/** @typedef {import('@wdk/wallet').TransferResult} TransferResult */
+
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
+/** @typedef {import('./wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
 
 const BIP_44_ETH_DERIVATION_PATH_PREFIX = "m/44'/60'"
 
-export default class WalletAccountEvm {
-  #account
-
+/** @implements {IWalletAccount} */
+export default class WalletAccountEvm extends WalletAccountReadOnlyEvm {
   /**
    * Creates a new evm wallet account.
    *
-   * @param {string} seedPhrase - The bip-39 mnemonic.
+   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
    * @param {string} path - The BIP-44 derivation path (e.g. "0'/0/0").
    * @param {EvmWalletConfig} [config] - The configuration object.
    */
-  constructor (seedPhrase, path, config = {}) {
-    if (!Mnemonic.isValidMnemonic(seedPhrase)) {
-      throw new Error('The seed phrase is invalid.')
+  constructor (seed, path, config = {}) {
+    if (typeof seed === 'string') {
+      if (!bip39.validateMnemonic(seed)) {
+        throw new Error('The seed phrase is invalid.')
+      }
+
+      seed = bip39.mnemonicToSeedSync(seed)
     }
 
-    const wallet = HDNodeWallet.fromPhrase(seedPhrase, undefined, BIP_44_ETH_DERIVATION_PATH_PREFIX)
+    path = BIP_44_ETH_DERIVATION_PATH_PREFIX + '/' + path
 
-    this.#account = wallet.derivePath(path)
+    const account = MemorySafeHDNodeWallet.fromSeed(seed)
+      .derivePath(path)
 
-    const { rpcUrl } = config
+    super(account.address, config)
 
-    if (rpcUrl) {
-      const provider = new JsonRpcProvider(rpcUrl)
+    /**
+     * The wallet account configuration.
+     *
+     * @protected
+     * @type {EvmWalletConfig}
+     */
+    this._config = config
 
-      this.#account = this.#account.connect(provider)
+    /**
+     * The account.
+     *
+     * @protected
+     * @type {HDNodeWallet}
+     */
+    this._account = account
+
+    if (this._provider) {
+      this._account = this._account.connect(this._provider)
     }
   }
 
@@ -74,7 +88,7 @@ export default class WalletAccountEvm {
    * @type {number}
    */
   get index () {
-    return this.#account.index
+    return this._account.index
   }
 
   /**
@@ -83,7 +97,7 @@ export default class WalletAccountEvm {
    * @type {string}
    */
   get path () {
-    return this.#account.path
+    return this._account.path
   }
 
   /**
@@ -93,18 +107,9 @@ export default class WalletAccountEvm {
    */
   get keyPair () {
     return {
-      privateKey: this.#account.privateKey,
-      publicKey: this.#account.publicKey
+      privateKey: this._account.privateKeyBuffer,
+      publicKey: this._account.publicKeyBuffer
     }
-  }
-
-  /**
-   * Returns the account's address.
-   *
-   * @returns {Promise<string>} The account's address.
-   */
-  async getAddress () {
-    return this.#account.address
   }
 
   /**
@@ -114,7 +119,7 @@ export default class WalletAccountEvm {
    * @returns {Promise<string>} The message's signature.
    */
   async sign (message) {
-    return await this.#account.signMessage(message)
+    return await this._account.signMessage(message)
   }
 
   /**
@@ -127,73 +132,69 @@ export default class WalletAccountEvm {
   async verify (message, signature) {
     const address = await verifyMessage(message, signature)
 
-    return address.toLowerCase() === this.#account.address.toLowerCase()
+    return address.toLowerCase() === this._account.address.toLowerCase()
   }
 
   /**
-   * Sends a transaction with arbitrary data.
+   * Sends a transaction.
    *
-   * @param {EvmTransaction} tx - The transaction to send.
-   * @returns {Promise<string>} The transaction's hash.
+   * @param {EvmTransaction} tx - The transaction.
+   * @returns {Promise<TransactionResult>} The transaction's result.
    */
   async sendTransaction (tx) {
-    if (!this.#account.provider) {
+    if (!this._account.provider) {
       throw new Error('The wallet must be connected to a provider to send transactions.')
     }
 
-    const { hash } = await this.#account.sendTransaction(tx)
+    const { fee } = await this.quoteSendTransaction(tx)
 
-    return hash
+    const { hash } = await this._account.sendTransaction({
+      from: await this.getAddress(),
+      ...tx
+    })
+
+    return { hash, fee }
   }
 
   /**
-   * Quotes a transaction.
+   * Transfers a token to another address.
    *
-   * @param {EvmTransaction} tx - The transaction to quote.
-   * @returns {Promise<number>} The transaction’s fee (in weis).
+   * @param {TransferOptions} options - The transfer's options.
+   * @returns {Promise<TransferResult>} The transfer's result.
    */
-  async quoteTransaction (tx) {
-    if (!this.#account.provider) {
-      throw new Error('The wallet must be connected to a provider to quote transactions.')
+  async transfer (options) {
+    if (!this._account.provider) {
+      throw new Error('The wallet must be connected to a provider to transfer tokens.')
     }
 
-    const gasLimit = await this.#account.provider.estimateGas(tx)
-    
-    const { maxFeePerGas } = await this.#account.provider.getFeeData()
+    const tx = await WalletAccountEvm._getTransferTransaction(options)
 
-    return Number(gasLimit * maxFeePerGas)
+    const { fee } = await this.quoteSendTransaction(tx)
+
+    if (this._config.transferMaxFee !== undefined && fee >= this._config.transferMaxFee) {
+      throw new Error('Exceeded maximum fee cost for transfer operation.')
+    }
+
+    const { hash } = await this._account.sendTransaction(tx)
+
+    return { hash, fee }
   }
 
   /**
-   * Returns the account's native token balance.
+   * Returns a read-only copy of the account.
    *
-   * @returns {Promise<number>} The native token balance.
+   * @returns {Promise<WalletAccountReadOnlyEvm>} The read-only account.
    */
-  async getBalance () {
-    if (!this.#account.provider) {
-      throw new Error('The wallet must be connected to a provider to retrieve balances.')
-    }
+  async toReadOnlyAccount () {
+    const readOnlyAccount = new WalletAccountReadOnlyEvm(this._account.address, this._config)
 
-    const balance = await this.#account.provider.getBalance(await this.getAddress())
-
-    return Number(balance)
+    return readOnlyAccount
   }
 
   /**
-   * Returns the account balance for a specific token.
-   *
-   * @param {string} tokenAddress - The smart contract address of the token.
-   * @returns {Promise<number>} The token balance.
+   * Disposes the wallet account, erasing the private key from the memory.
    */
-  async getTokenBalance (tokenAddress) {
-    if (!this.#account.provider) {
-      throw new Error('The wallet must be connected to a provider to retrieve token balances.')
-    }
-
-    const abi = ['function balanceOf(address owner) view returns (uint256)']
-    const token = new Contract(tokenAddress, abi, this.#account.provider)
-    const balance = await token.balanceOf(await this.getAddress())
-    
-    return Number(balance)
+  dispose () {
+    this._account.dispose()
   }
 }
