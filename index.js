@@ -13,20 +13,12 @@
 // limitations under the License.
 'use strict'
 
-/** @typedef {import('ethers').TransactionReceipt} EvmTransactionReceipt */
-
-/** @typedef {import('@tetherto/wdk-wallet').FeeRates} FeeRates */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
-/** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
-/** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
-/** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
-/** @typedef {import('./src/wallet-account-read-only-evm.js').EvmTransaction} EvmTransaction */
-/** @typedef {import('./src/wallet-account-read-only-evm.js').EvmWalletConfig} EvmWalletConfig */
-/** @typedef {import('./src/wallet-account-evm.js').ApproveOptions} ApproveOptions */
+/** @typedef {import('./src/wallet-account-read-only-valis.js').ValisWalletConfig} ValisWalletConfig */
 
-export { default } from './src/wallet-manager-evm.js'
+export { default } from './src/wallet-manager-valis.js'
 
-export { default as WalletAccountReadOnlyEvm } from './src/wallet-account-read-only-evm.js'
+export { default as WalletAccountReadOnlyValis } from './src/wallet-account-read-only-valis.js'
 
-export { default as WalletAccountEvm } from './src/wallet-account-evm.js'
+export { default as WalletAccountValis } from './src/wallet-account-valis.js'

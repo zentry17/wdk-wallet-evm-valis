@@ -1,12 +1,5 @@
-export { default } from "./src/wallet-manager-evm.js";
-export { default as WalletAccountReadOnlyEvm } from "./src/wallet-account-read-only-evm.js";
-export { default as WalletAccountEvm } from "./src/wallet-account-evm.js";
-export type EvmTransactionReceipt = import("ethers").TransactionReceipt;
-export type FeeRates = import("@tetherto/wdk-wallet").FeeRates;
+export { default } from "./src/wallet-manager-valis.js";
+export { default as WalletAccountReadOnlyValis } from "./src/wallet-account-read-only-valis.js";
+export { default as WalletAccountValis } from "./src/wallet-account-valis.js";
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
-export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
-export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
-export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
-export type EvmTransaction = import("./src/wallet-account-read-only-evm.js").EvmTransaction;
-export type EvmWalletConfig = import("./src/wallet-account-read-only-evm.js").EvmWalletConfig;
-export type ApproveOptions = import("./src/wallet-account-evm.js").ApproveOptions;
+export type ValisWalletConfig = import("./src/wallet-account-read-only-valis.js").ValisWalletConfig;

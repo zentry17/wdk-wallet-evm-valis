@@ -1,7 +1,7 @@
 {
-  "name": "@tetherto/wdk-wallet-evm",
+  "name": "@tetherto/wdk-wallet-valis",
   "version": "1.0.0-beta.4",
-  "description": "A simple package to manage BIP-32 wallets for evm blockchains.",
+  "description": "A simple package to manage BIP-32 wallets for blockchain.",
   "keywords": [
     "wdk",
     "wallet",
@@ -12,7 +12,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/tetherto/wdk-wallet-evm.git"
+    "url": "git://github.com/zentry17/wdk-wallet-evm-valis.git"
   },
   "main": "index.js",
   "type": "module",
@@ -34,7 +34,8 @@
     "bare-node-runtime": "^1.1.4",
     "bip39": "3.1.0",
     "ethers": "6.14.3",
-    "sodium-universal": "5.0.1"
+    "sodium-universal": "5.0.1",
+    "valis-client": "github:zentry17/valis-client"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "3.0.9",

@@ -15,48 +15,30 @@
 'use strict'
 
 import WalletManager from '@tetherto/wdk-wallet'
-
-import { BrowserProvider, JsonRpcProvider } from 'ethers'
-
-import WalletAccountEvm from './wallet-account-evm.js'
+import WalletAccountEvm from './wallet-account-valis.js'
+import ValisProvider from './valis-provider.js'
 
 /** @typedef {import('ethers').Provider} Provider */
 
 /** @typedef {import("@tetherto/wdk-wallet").FeeRates} FeeRates */
 
-/** @typedef {import('./wallet-account-evm.js').EvmWalletConfig} EvmWalletConfig */
+/** @typedef {import('./wallet-account-valis.js').ValisWalletConfig} ValisWalletConfig */
 
-export default class WalletManagerEvm extends WalletManager {
+export default class WalletManagerValis extends WalletManager {
   /**
-   * Multiplier for normal fee rate calculations (in %).
-   *
-   * @protected
-   * @type {bigint}
-   */
-  static _FEE_RATE_NORMAL_MULTIPLIER = 110n
-
-  /**
-   * Multiplier for fast fee rate calculations (in %).
-   *
-   * @protected
-   * @type {bigint}
-   */
-  static _FEE_RATE_FAST_MULTIPLIER = 200n
-
-  /**
-   * Creates a new wallet manager for evm blockchains.
+   * Creates a new wallet manager for valis blockchain.
    *
    * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
-   * @param {EvmWalletConfig} [config] - The configuration object.
+   * @param {ValisWalletConfig} [config] - The configuration object.
    */
   constructor (seed, config = {}) {
     super(seed, config)
 
     /**
-     * The evm wallet configuration.
+     * The wallet configuration.
      *
      * @protected
-     * @type {EvmWalletConfig}
+     * @type {ValisWalletConfig}
      */
     this._config = config
 
@@ -70,8 +52,8 @@ export default class WalletManagerEvm extends WalletManager {
        * @type {Provider | undefined}
        */
       this._provider = typeof provider === 'string'
-        ? new JsonRpcProvider(provider)
-        : new BrowserProvider(provider)
+        ? new ValisProvider(provider)
+        : provider
     }
   }
 
@@ -105,23 +87,5 @@ export default class WalletManagerEvm extends WalletManager {
     }
 
     return this._accounts[path]
-  }
-
-  /**
-   * Returns the current fee rates.
-   *
-   * @returns {Promise<FeeRates>} The fee rates (in weis).
-   */
-  async getFeeRates () {
-    if (!this._provider) {
-      throw new Error('The wallet must be connected to a provider to get fee rates.')
-    }
-
-    const { maxFeePerGas } = await this._provider.getFeeData()
-
-    return {
-      normal: maxFeePerGas * WalletManagerEvm._FEE_RATE_NORMAL_MULTIPLIER / 100n,
-      fast: maxFeePerGas * WalletManagerEvm._FEE_RATE_FAST_MULTIPLIER / 100n
-    }
   }
 }
