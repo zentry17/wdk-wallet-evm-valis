@@ -1,5 +1,5 @@
 {
-  "name": "@tetherto/wdk-wallet-valis",
+  "name": "@wdk/wallet-valis",
   "version": "1.0.0-beta.4",
   "description": "A simple package to manage BIP-32 wallets for blockchain.",
   "keywords": [
